@@ -104,6 +104,36 @@ class GlobalParameters():
     def cleanwk(self):
         self.initwk()
 
+    def resetdb(self):
+        self.numbonds = 0
+        self.minbonds = []
+        self.nclust = 0
+        self.maxsz = -1
+        self.mxsz = -1
+        self.mysz = -1
+        self.bmap = []
+        self.who = []
+        self.pt = []
+        self.st = []
+        self.fi = []
+        self.hp = []
+        self.ok = []
+        self.unew = []
+        self.nnew = []
+        self.uold = []
+        self.nold = []
+        self.lost = []
+        self.losttot = []
+        self.nlost = 0
+        self.lensq = 0
+        self.mndisq = 0
+
+        self.xdim = size(self.labelx)
+        self.ydim = size(self.labely)
+        #%  make a list of the non-trivial bonds
+        self.bonds = ones((1,2))
+        self.bondlen = [0]
+
 def checktimevec(gp):
     """Check the input time vector"""
     #check the input time vector is ok, i.e. sorted and uniform
@@ -376,36 +406,6 @@ def indexmax(gp):
 
     return gp.which1
 
-def resetdb(gp):
-    gp.numbonds = 0
-    gp.minbonds = []
-    gp.nclust = 0
-    gp.maxsz = -1
-    gp.mxsz = -1
-    gp.mysz = -1
-    gp.bmap = []
-    gp.who = []
-    gp.pt = []
-    gp.st = []
-    gp.fi = []
-    gp.hp = []
-    gp.ok = []
-    gp.unew = []
-    gp.nnew = []
-    gp.uold = []
-    gp.nold = []
-    gp.lost = []
-    gp.losttot = []
-    gp.nlost = 0
-    gp.lensq = 0
-    gp.mndisq = 0
-
-    gp.xdim = size(gp.labelx)
-    gp.ydim = size(gp.labely)
-    #%  make a list of the non-trivial bonds
-    gp.bonds = ones((1,2))
-    gp.bondlen = [0]
-
 def checkpt(gp):
     if gp.pt[gp.who] != gp.st[gp.who] - 1:            
         gp.ok[gp.hp[gp.pt[gp.who]]] = 1            
@@ -598,7 +598,7 @@ def trackmem(xyzs, maxdisp=5, memory=3, dim=2, goodenough=3, quiet=1):
                 #            del rowtot, coltot, which1
 
             if nontrivial:
-                resetdb(gp)
+                gp.resetdb()
                 for j in r_[:gp.ydim]:
                     distq = repeat(0, gp.xdim)
                     for d in r_[:gp.dim]:
