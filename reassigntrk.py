@@ -134,368 +134,366 @@ class GlobalParameters():
         self.bonds = ones((1,2))
         self.bondlen = [0]
 
-def checktimevec(gp):
-    """Check the input time vector"""
-    #check the input time vector is ok, i.e. sorted and uniform
+    def checktimevec(self):
+        """Check the input time vector"""
+        #check the input time vector is ok, i.e. sorted and uniform
 
-    st_t = circshift(gp.t,1)
-    st = gp.t[1:size(gp.t)] - st_t[1:size(gp.t)]
+        st_t = circshift(self.t,1)
+        st = self.t[1:size(self.t)] - st_t[1:size(self.t)]
 
-    if sum(st[st<0]) != 0:
-        print "The time vectors are not in order\n"
-        return
+        if sum(st[st<0]) != 0:
+            print "The time vectors are not in order\n"
+            return
 
-    gp.wp, z = find(st>0)
-    if z == 0:
-        print "All positions are at the same time... go back!"
-        return
-    elif sum(st[gp.wp] - st[gp.wp[0]]) != 0:
-        print 'WARNING - Time vector gapped or not evenly gapped!'
+        self.wp, z = find(st>0)
+        if z == 0:
+            print "All positions are at the same time... go back!"
+            return
+        elif sum(st[self.wp] - st[self.wp[0]]) != 0:
+            print 'WARNING - Time vector gapped or not evenly gapped!'
 
-    gp.z = z+1
+        self.z = z+1
 
-def calcblocksize(xyzs, gp):
-    """calculate a blocksize which may be greater than maxdisp, but which
-    keeps nblocks reasonably small."""
+    def calcblocksize(self, xyzs):
+        """calculate a blocksize which may be greater than maxdisp, but which
+        keeps nblocks reasonably small."""
 
-    volume = 1
-    for d in r_[:gp.dim]:
-        minn = min(xyzs[gp.wp,d])
-        maxx = max(xyzs[gp.wp,d])
-        volume = volume * (maxx-minn)
+        volume = 1
+        for d in r_[:self.dim]:
+            minn = min(xyzs[self.wp,d])
+            maxx = max(xyzs[self.wp,d])
+            volume = volume * (maxx-minn)
 
-    blocksize = max(r_[gp.maxdisp,(volume/(20*gp.n))**(1.0/gp.dim)])
-    #Tailor the factor in bottom for the particular system    
+        blocksize = max(r_[self.maxdisp,(volume/(20*self.n))**(1.0/self.dim)])
+        #Tailor the factor in bottom for the particular system    
 
-def fixzspan(gp):
-    gp.zspan = 50
-    if gp.n > 200:
-        gp.zspan = 20
-    elif gp.n > 500:
-        gp.zspan = 10
-    return gp.zspan
+    def fixzspan(self):
+        self.zspan = 50
+        if self.n > 200:
+            self.zspan = 20
+        elif self.n > 500:
+            self.zspan = 10
+        return self.zspan
 
-def gonext(i,xyzs,gp):
-    gp.ispan = i % gp.zspan
-    ##   Get the new particle positions.
-    gp.m = gp.res[i+1] - gp.res[i]
-    gp.eyes = gp.res[i] + r_[:gp.m] # check
-    if gp.m > 0:
-        gp.xyi = xyzs[gp.eyes,:gp.dim]
-        gp.found = repeat(0, gp.m)
+    def gonext(self,i,xyzs):
+        self.ispan = i % self.zspan
+        ##   Get the new particle positions.
+        self.m = self.res[i+1] - self.res[i]
+        self.eyes = self.res[i] + r_[:self.m] # check
+        if self.m > 0:
+            self.xyi = xyzs[self.eyes,:self.dim]
+            self.found = repeat(0, self.m)
 
-def makecube(gp):
-    """construct the vertices of a 3x3x3... d-dimensional hypercube"""
-    cube = zeros((3**dim, dim))
-    for d in r_[:dim]:
-        numb = 0
-        for j in r_[0:3**dim:3**d]:
-            cube[j:j+3**d,d] = numb
-            numb = (numb+1) % 3
-    return cube
+    def makecube(self):
+        """construct the vertices of a 3x3x3... d-dimensional hypercube"""
+        cube = zeros((3**dim, dim))
+        for d in r_[:dim]:
+            numb = 0
+            for j in r_[0:3**dim:3**d]:
+                cube[j:j+3**d,d] = numb
+                numb = (numb+1) % 3
+        return cube
 
-def rastermetrictrivialbonds(gp):
-    ##   construct "s", a one dimensional parameterization of the space
-    ##   ( which consists of the d-dimensional raster scan of the volume.)
+    def rastermetrictrivialbonds(self):
+        ##   construct "s", a one dimensional parameterization of the space
+        ##   ( which consists of the d-dimensional raster scan of the volume.)
 
-    abi = fix(gp.xyi/gp.blocksize)
-    abpos = fix(gp.pos/gp.blocksize)
-    gp.si = repeat(0, gp.m)
-    gp.spos = repeat(0, gp.n)
-    gp.dimm = repeat(0, gp.dim)
-    gp.nblocks = 1.
+        abi = fix(self.xyi/self.blocksize)
+        abpos = fix(self.pos/self.blocksize)
+        self.si = repeat(0, self.m)
+        self.spos = repeat(0, self.n)
+        self.dimm = repeat(0, self.dim)
+        self.nblocks = 1.
 
-    for j in r_[:gp.dim]:
-        minn = min(r_[abi[:,j],abpos[:,j]])
-        maxx = max(r_[abi[:,j],abpos[:,j]])
-        abi[:,j] = abi[:,j] - minn
-        abpos[:,j] = abpos[:,j] - minn
-        gp.dimm[j] = maxx - minn + 1
-        gp.si = gp.si + abi[:,j] * gp.nblocks
-        gp.spos = gp.spos + abpos[:,j] * gp.nblocks
-        gp.nblocks = gp.dimm[j] * gp.nblocks
+        for j in r_[:self.dim]:
+            minn = min(r_[abi[:,j],abpos[:,j]])
+            maxx = max(r_[abi[:,j],abpos[:,j]])
+            abi[:,j] = abi[:,j] - minn
+            abpos[:,j] = abpos[:,j] - minn
+            self.dimm[j] = maxx - minn + 1
+            self.si = self.si + abi[:,j] * self.nblocks
+            self.spos = self.spos + abpos[:,j] * self.nblocks
+            self.nblocks = self.dimm[j] * self.nblocks
 
-def calcscoord(gp,cube):
-    """ trim down (intersect) the hypercube if its too big to fit in the particle volume.
-    (i.e. if dimm(j) lt 3) and then calculate the <s> coordinates of hypercube (with a corner @
-    the origin) shift the hypercube <s> coordinates to be centered around the origin"""
+    def calcscoord(self,cube):
+        """ trim down (intersect) the hypercube if its too big to fit in the particle volume.
+        (i.e. if dimm(j) lt 3) and then calculate the <s> coordinates of hypercube (with a corner @
+        the origin) shift the hypercube <s> coordinates to be centered around the origin"""
 
-    cub = cube;
-    deg, ndeg = find(gp.dimm<3)
-    if ndeg != 0:
-        for j in r_[:deg.size]:
-            cub = cub[nonzero(cub[:,deg[j]] < gp.dimm[deg[j]]), :]
+        cub = cube;
+        deg, ndeg = find(self.dimm<3)
+        if ndeg != 0:
+            for j in r_[:deg.size]:
+                cub = cub[nonzero(cub[:,deg[j]] < self.dimm[deg[j]]), :]
 
-    scube = repeat(0, cube.shape[0])
-    coff = 1
-    for j in r_[:gp.dim]:
-        scube = scube + cube[:,j] * coff
-        coff = coff * gp.dimm[j]
+        scube = repeat(0, cube.shape[0])
+        coff = 1
+        for j in r_[:self.dim]:
+            scube = scube + cube[:,j] * coff
+            coff = coff * self.dimm[j]
 
-    coff = 1
-    for j in r_[:gp.dim]:
-        if gp.dimm[j] > 3:
-            scube = scube - coff
-        coff = gp.dimm[j] * coff
+        coff = 1
+        for j in r_[:self.dim]:
+            if self.dimm[j] > 3:
+                scube = scube - coff
+            coff = self.dimm[j] * coff
 
-    scube = (scube + gp.nblocks) % gp.nblocks
-    return scube
+        scube = (scube + self.nblocks) % self.nblocks
+        return scube
 
-def prepmat(gp):
-    mg = mgrid[:gp.ntrack,:gp.m]
-    xmat = mg[1]
-    ymat = mg[0]
-    return xmat, ymat
+    def prepmat(self):
+        mg = mgrid[:self.ntrack,:self.m]
+        xmat = mg[1]
+        ymat = mg[0]
+        return xmat, ymat
 
-def update(gp, xyzs):
-    gp.wp, nww = find(gp.resx[gp.ispan,:] >= 0)
-    if nww > 0:
-        gp.pos[gp.wp,:] = xyzs[gp.resx[gp.ispan,gp.wp].astype('int64'), :gp.dim]
-        if gp.goodenough > 0:
-            gp.nvalid[gp.wp] = gp.nvalid[gp.wp] + 1
-    else:
-        print 'Warning, tracking zero particles!\n'
-
-    #we need to add new guys, as appropriate.
-    newguys, nnew = find(gp.found == 0)
-
-    if nnew > 0:
-        newarr = zeros((gp.zspan, nnew)) - 1
-        gp.resx = c_[gp.resx, newarr]
-        gp.resx[gp.ispan, gp.n:] = gp.eyes[newguys]
-        gp.pos = vstack([gp.pos, xyzs[gp.eyes[newguys],:gp.dim]])
-        gp.mem = r_[gp.mem, repeat(0, nnew)]
-        gp.uniqid = r_[gp.uniqid, r_[:nnew] + gp.maxid]
-        gp.maxid = gp.maxid + nnew
-        if gp.goodenough > 0:
-            gp.dumphash = r_[gp.dumphash, repeat(0,nnew)]
-            gp.nvalid = r_[gp.nvalid, repeat(1,nnew)]
-
-        gp.n = gp.n + nnew
-
-def updatemem(gp, i):
-    ##   update the 'memory' array
-    gp.wp, nok = find(gp.resx[gp.ispan,:] != -1)
-
-    if nok != 0:
-        gp.mem[gp.wp] = 0
-    gp.mem = gp.mem + (gp.resx[gp.ispan,:].T == -1)
-
-    wlost, nlost = find(gp.mem == gp.memory + 1)
-    if nlost > 0:
-        gp.pos[wlost,:] = - gp.maxdisp
-        if gp.goodenough > 0:
-            wdump, ndump = find(gp.nvalid[wlost] < gp.goodenough)
-            if ndump > 0:
-                gp.dumphash[wlost[wdump]] = 1
-
-    if (gp.ispan == gp.zspan-1) or (i== gp.z-1):
-        nnew = gp.n - gp.bigresx.shape[1]
-        if nnew > 0:
-            newarr = zeros((gp.z, nnew)) -1
-            gp.bigresx = column_stack([gp.bigresx, newarr])
-
-        if gp.goodenough > 0:
-            if sum(gp.dumphash) > 0:
-                wkeep, nkeep = find(gp.dumphash == 0)
-                gp.resx = gp.resx[:,wkeep]
-                gp.bigresx = gp.bigresx[:,wkeep]
-                gp.pos = gp.pos[wkeep,:]
-                gp.mem = gp.mem[wkeep]
-                gp.uniqid = gp.uniqid[wkeep]
-                gp.nvalid = gp.nvalid[wkeep]
-                gp.n = nkeep
-                gp.dumphash = repeat(0, nkeep)
-
-        if gp.quiet != 1:
-            print "{:d} of {:d} done. Tracking {:d} particles, {:d} tracks total\n".format(i, gp.z, ntrk, gp.n)
-
-        gp.bigresx[i-gp.ispan:i+1,:] = gp.resx[:gp.ispan+1,:]
-        gp.resx = zeros((gp.zspan,gp.n)) -1
-
-        wpull, npull = find(gp.pos[:,0] == -gp.maxdisp)
-
-        if npull > 0:
-            lillist = zeros((1,2))
-            for ipull in r_[:npull]:
-                wpull2, npull2 = find(gp.bigresx[:,wpull[ipull]] != -1)
-                thing = column_stack((gp.bigresx[wpull2, wpull[ipull]], repeat(0, npull2) + gp.uniqid[wpull[ipull]]))
-                lillist = vstack([lillist, thing])
-
-            gp.olist = vstack((gp.olist,lillist[1:,:]))
-
-        wkeep, nkeep = find(gp.pos[:,0] >= 0)
-
-        if nkeep == 0:
-            print 'Were going to crash now, no particles....\n'
-        gp.resx = gp.resx[:,wkeep]
-        gp.bigresx = gp.bigresx[:,wkeep]
-        gp.pos = gp.pos[wkeep,:]
-        gp.mem = gp.mem[wkeep]
-        gp.uniqid = gp.uniqid[wkeep]
-        gp.n = nkeep
-        gp.dumphash = repeat(0, nkeep)
-        if gp.goodenough > 0:
-            gp.nvalid = gp.nvalid[wkeep]
-
-def initfornotnsqrd(gp):
-    ed, gp.isort = sortor(gp.si)
-
-    gp.strt, gp.fnsh = gp.settargetrange()
-
-    gp.coltot = repeat(0, gp.m)
-    gp.rowtot = repeat(0, gp.n)
-    gp.which1 = repeat(0, gp.n)
-
-def settargetrange(gp):
-    """make a hash table which will allow us to know which new particles
-    are at a given si."""
-
-    gp.strt = repeat(0, gp.nblocks) -1    # -1 is a tag
-    gp.fnsh = repeat(0, gp.nblocks)
-
-    for j in r_[:gp.m]:
-        if gp.strt[gp.si[gp.isort[j]]] == -1:    # if it is the first time for filling the block
-            gp.strt[gp.si[gp.isort[j]]] = j      # the beginning of gp.si with that value.
-            gp.fnsh[gp.si[gp.isort[j]]] = j
+    def update(self, xyzs):
+        self.wp, nww = find(self.resx[self.ispan,:] >= 0)
+        if nww > 0:
+            self.pos[self.wp,:] = xyzs[self.resx[self.ispan,self.wp].astype('int64'), :self.dim]
+            if self.goodenough > 0:
+                self.nvalid[self.wp] = self.nvalid[self.wp] + 1
         else:
-            gp.fnsh[gp.si[gp.isort[j]]] = j      # only the finish is being updated while gp.si takes the same value.
-    return (gp.strt, gp.fnsh)
+            print 'Warning, tracking zero particles!\n'
 
-def findtrivialbonds (gp, j):
-    """ find those trivial bonds"""
-    distq = repeat(0, gp.map.size)
-    for d in r_[:gp.dim]:
-        distq = distq + (gp.xyi[gp.map,d] - gp.pos[j,d])**2
-    return distq
+        #we need to add new guys, as appropriate.
+        newguys, nnew = find(self.found == 0)
 
-def countgood(gp):
-    gp.rowtot = repeat(0, gp.n)
-    gp.rowtot[gp.wh] = sum(gp.ltmax,axis=1)
-    if gp.ntrack > 1:
-        gp.coltot = repeat(0, gp.ntrack)            
-        gp.coltot = sum(gp.ltmax,axis=0)
-    else:
-        gp.coltot = gp.ltmax
+        if nnew > 0:
+            newarr = zeros((self.zspan, nnew)) - 1
+            self.resx = c_[self.resx, newarr]
+            self.resx[self.ispan, self.n:] = self.eyes[newguys]
+            self.pos = vstack([self.pos, xyzs[self.eyes[newguys],:self.dim]])
+            self.mem = r_[self.mem, repeat(0, nnew)]
+            self.uniqid = r_[self.uniqid, r_[:nnew] + self.maxid]
+            self.maxid = self.maxid + nnew
+            if self.goodenough > 0:
+                self.dumphash = r_[self.dumphash, repeat(0,nnew)]
+                self.nvalid = r_[self.nvalid, repeat(1,nnew)]
 
-def labelxy(gp):
-    gp.wp, ngood = find(gp.rowtot == 1)
-    if ngood != 0:
-        ww, ngood = find(gp.coltot[gp.which1[gp.wp]] == 1)
-        if ngood != 0:
-            gp.resx[gp.ispan,gp.wp[ww]] = gp.eyes[gp.which1[gp.wp[ww]]]
-            gp.found[gp.which1[gp.wp[ww]]] = 1
-            gp.rowtot[gp.wp[ww]] = 0
-            gp.coltot[gp.which1[gp.wp[ww]]] = 0
+            self.n = self.n + nnew
 
-    gp.labely, ngood = find(gp.rowtot>0)
-    if ngood != 0:
-        gp.labelx = find(gp.coltot > 0)[0]
-        nontrivial = True
-    else:
-        nontrivial = False
+    def updatemem(self, i):
+        ##   update the 'memory' array
+        self.wp, nok = find(self.resx[self.ispan,:] != -1)
 
-    return nontrivial
+        if nok != 0:
+            self.mem[self.wp] = 0
+        self.mem = self.mem + (self.resx[self.ispan,:].T == -1)
 
-def indexmax(gp):
-    gp.which1 = repeat(0, gp.n)
-    for j in r_[:gp.ntrack]:
-        gp.wp = gp.ltmax[j,:].argmax()
-        if gp.wp.size > 1: gp.wp = gp.wp[0]
-        gp.which1[gp.wh[j]] = gp.wp
+        wlost, nlost = find(self.mem == self.memory + 1)
+        if nlost > 0:
+            self.pos[wlost,:] = - self.maxdisp
+            if self.goodenough > 0:
+                wdump, ndump = find(self.nvalid[wlost] < self.goodenough)
+                if ndump > 0:
+                    self.dumphash[wlost[wdump]] = 1
 
-    return gp.which1
+        if (self.ispan == self.zspan-1) or (i== self.z-1):
+            nnew = self.n - self.bigresx.shape[1]
+            if nnew > 0:
+                newarr = zeros((self.z, nnew)) -1
+                self.bigresx = column_stack([self.bigresx, newarr])
 
-def checkpt(gp):
-    if gp.pt[gp.who] != gp.st[gp.who] - 1:            
-        gp.ok[gp.hp[gp.pt[gp.who]]] = 1            
+            if self.goodenough > 0:
+                if sum(self.dumphash) > 0:
+                    wkeep, nkeep = find(self.dumphash == 0)
+                    self.resx = self.resx[:,wkeep]
+                    self.bigresx = self.bigresx[:,wkeep]
+                    self.pos = self.pos[wkeep,:]
+                    self.mem = self.mem[wkeep]
+                    self.uniqid = self.uniqid[wkeep]
+                    self.nvalid = self.nvalid[wkeep]
+                    self.n = nkeep
+                    self.dumphash = repeat(0, nkeep)
 
-def extractsubnetwork(gp):
-    """Extracts connected sub-networks of the non-trivial bonds.
-    NB: lista/b can have redundant entries due to multiple-connected subnetworks"""
+            if self.quiet != 1:
+                print "{:d} of {:d} done. Tracking {:d} particles, {:d} tracks total\n".format(i, self.z, ntrk, self.n)
 
-    lista = array(repeat(1,gp.numbonds))
-    listb = array(repeat(1,gp.numbonds))
+            self.bigresx[i-self.ispan:i+1,:] = self.resx[:self.ispan+1,:]
+            self.resx = zeros((self.zspan,self.n)) -1
 
-    gp.nclust = 0
-    gp.maxsz = 0
-    thru = gp.xdim
+            wpull, npull = find(self.pos[:,0] == -self.maxdisp)
 
-    while thru != 0:
-        gp.wp = find(gp.bonds[:,1] >= 0)[0]
-        lista[0] = array(gp.bonds[gp.wp[0],1])
-        listb[0] = array(gp.bonds[gp.wp[0],0])
-        gp.bonds[gp.wp[0],:] = - (gp.nclust+1)      # consider -1 as a tag "Done"
-        adda = 1
-        addb = 1
-        donea = 0    # donea and doneb serve as indices later
-        doneb = 0
-        #         adda  = 2; addb  = 2;
-        #         donea = 1; doneb = 1;
+            if npull > 0:
+                lillist = zeros((1,2))
+                for ipull in r_[:npull]:
+                    wpull2, npull2 = find(self.bigresx[:,wpull[ipull]] != -1)
+                    thing = column_stack((self.bigresx[wpull2, wpull[ipull]], repeat(0, npull2) + self.uniqid[wpull[ipull]]))
+                    lillist = vstack([lillist, thing])
 
-        cycle = True
-        while (cycle):
-            if donea != adda:                    
-                gp.wp, ngood = find(gp.bonds[:,1] == lista[donea])
-                if ngood != 0:
-                    listb[addb:addb+ngood] = gp.bonds[gp.wp,0]
-                    gp.bonds[gp.wp,:] = - (gp.nclust+1)     # consider -1 as a tag "Done"
-                    addb = addb + ngood
-                donea = donea + 1
-            if doneb != addb:                    
-                gp.wp, ngood = find(gp.bonds[:,0] == listb[doneb])
-                if ngood != 0:
-                    lista[adda:adda+ngood] = gp.bonds[gp.wp,1]
-                    gp.bonds[gp.wp,:] = - (gp.nclust+1)       # consider -1 as a tag "Done"
-                    adda = adda + ngood
-                doneb = doneb + 1
+                self.olist = vstack((self.olist,lillist[1:,:]))
 
-            if donea == adda and doneb == addb:                    
-                cycle = False
+            wkeep, nkeep = find(self.pos[:,0] >= 0)
+
+            if nkeep == 0:
+                print 'Were going to crash now, no particles....\n'
+            self.resx = self.resx[:,wkeep]
+            self.bigresx = self.bigresx[:,wkeep]
+            self.pos = self.pos[wkeep,:]
+            self.mem = self.mem[wkeep]
+            self.uniqid = self.uniqid[wkeep]
+            self.n = nkeep
+            self.dumphash = repeat(0, nkeep)
+            if self.goodenough > 0:
+                self.nvalid = self.nvalid[wkeep]
+
+    def initfornotnsqrd(self):
+        ed, self.isort = sortor(self.si)
+
+        self.strt, self.fnsh = self.settargetrange()
+
+        self.coltot = repeat(0, self.m)
+        self.rowtot = repeat(0, self.n)
+        self.which1 = repeat(0, self.n)
+
+    def settargetrange(self):
+        """make a hash table which will allow us to know which new particles
+        are at a given si."""
+
+        self.strt = repeat(0, self.nblocks) -1    # -1 is a tag
+        self.fnsh = repeat(0, self.nblocks)
+
+        for j in r_[:self.m]:
+            if self.strt[self.si[self.isort[j]]] == -1:    # if it is the first time for filling the block
+                self.strt[self.si[self.isort[j]]] = j      # the beginning of self.si with that value.
+                self.fnsh[self.si[self.isort[j]]] = j
             else:
-                cycle = True
+                self.fnsh[self.si[self.isort[j]]] = j      # only the finish is being updated while self.si takes the same value.
+        return (self.strt, self.fnsh)
 
-        tempb, idxsortb = sortor(listb[:doneb])
-        tempa, idxsorta = sortor(lista[:donea])
-        xsz = size( mapunq(listb[:doneb], idxsortb) )
-        ysz = size( mapunq(lista[:donea], idxsorta) )
+    def findtrivialbonds (self, j):
+        """ find those trivial bonds"""
+        distq = repeat(0, self.map.size)
+        for d in r_[:self.dim]:
+            distq = distq + (self.xyi[self.map,d] - self.pos[j,d])**2
+        return distq
 
-        if xsz*ysz > gp.maxsz:
-            gp.maxsz = xsz*ysz
-            gp.mxsz = xsz
-            gp.mysz = ysz
+    def countgood(self):
+        self.rowtot = repeat(0, self.n)
+        self.rowtot[self.wh] = sum(self.ltmax,axis=1)
+        if self.ntrack > 1:
+            self.coltot = repeat(0, self.ntrack)            
+            self.coltot = sum(self.ltmax,axis=0)
+        else:
+            self.coltot = self.ltmax
 
-        thru = thru - xsz
-        gp.nclust = gp.nclust + 1
+    def labelxy(self):
+        self.wp, ngood = find(self.rowtot == 1)
+        if ngood != 0:
+            ww, ngood = find(self.coltot[self.which1[self.wp]] == 1)
+            if ngood != 0:
+                self.resx[self.ispan,self.wp[ww]] = self.eyes[self.which1[self.wp[ww]]]
+                self.found[self.which1[self.wp[ww]]] = 1
+                self.rowtot[self.wp[ww]] = 0
+                self.coltot[self.which1[self.wp[ww]]] = 0
 
-    gp.bmap = gp.bonds[:,0]
+        self.labely, ngood = find(self.rowtot>0)
+        if ngood != 0:
+            self.labelx = find(self.coltot > 0)[0]
+            nontrivial = True
+        else:
+            nontrivial = False
 
-    return
+        return nontrivial
 
-def updatebonds(gp):
-    if gp.who == gp.nnew-1:
-        ww = find(gp.lost == 0)[0]
-        dsq = sum(gp.lensq[gp.pt[ww]]) + gp.losttot * gp.maxdisq
-        if dsq < gp.mndisq:
-            gp.minbonds = gp.pt[ww]
-            gp.mndisq = dsq
-    else:
-        gp.who = gp.who +1
+    def indexmax(self):
+        self.which1 = repeat(0, self.n)
+        for j in r_[:self.ntrack]:
+            self.wp = self.ltmax[j,:].argmax()
+            if self.wp.size > 1: self.wp = self.wp[0]
+            self.which1[self.wh[j]] = self.wp
 
-def evallost(gp):
-    notlost = -gp.lost[gp.who] -1
-    if (notlost % 2 == 1) and (gp.losttot != gp.nlost):
-        gp.lost[gp.who] = 1
-        gp.losttot = gp.losttot + 1
-        checkpt(gp)
-        updatebonds(gp)
-    else:
-        checkpt(gp)
-        gp.pt[gp.who] = gp.st[gp.who] - 1
-        if gp.lost[gp.who]:
-            gp.lost[gp.who] = 0
-            gp.losttot = gp.losttot - 1
-        gp.who = gp.who - 1
+        return self.which1
+
+    def checkpt(self):
+        if self.pt[self.who] != self.st[self.who] - 1:            
+            self.ok[self.hp[self.pt[self.who]]] = 1            
+
+    def extractsubnetwork(self):
+        """Extracts connected sub-networks of the non-trivial bonds.
+        NB: lista/b can have redundant entries due to multiple-connected subnetworks"""
+
+        lista = array(repeat(1,self.numbonds))
+        listb = array(repeat(1,self.numbonds))
+
+        self.nclust = 0
+        self.maxsz = 0
+        thru = self.xdim
+
+        while thru != 0:
+            self.wp = find(self.bonds[:,1] >= 0)[0]
+            lista[0] = array(self.bonds[self.wp[0],1])
+            listb[0] = array(self.bonds[self.wp[0],0])
+            self.bonds[self.wp[0],:] = - (self.nclust+1)      # consider -1 as a tag "Done"
+            adda = 1
+            addb = 1
+            donea = 0    # donea and doneb serve as indices later
+            doneb = 0
+
+            cycle = True
+            while (cycle):
+                if donea != adda:                    
+                    self.wp, ngood = find(self.bonds[:,1] == lista[donea])
+                    if ngood != 0:
+                        listb[addb:addb+ngood] = self.bonds[self.wp,0]
+                        self.bonds[self.wp,:] = - (self.nclust+1)     # consider -1 as a tag "Done"
+                        addb = addb + ngood
+                    donea = donea + 1
+                if doneb != addb:                    
+                    self.wp, ngood = find(self.bonds[:,0] == listb[doneb])
+                    if ngood != 0:
+                        lista[adda:adda+ngood] = self.bonds[self.wp,1]
+                        self.bonds[self.wp,:] = - (self.nclust+1)       # consider -1 as a tag "Done"
+                        adda = adda + ngood
+                    doneb = doneb + 1
+
+                if donea == adda and doneb == addb:                    
+                    cycle = False
+                else:
+                    cycle = True
+
+            tempb, idxsortb = sortor(listb[:doneb])
+            tempa, idxsorta = sortor(lista[:donea])
+            xsz = size( mapunq(listb[:doneb], idxsortb) )
+            ysz = size( mapunq(lista[:donea], idxsorta) )
+
+            if xsz*ysz > self.maxsz:
+                self.maxsz = xsz*ysz
+                self.mxsz = xsz
+                self.mysz = ysz
+
+            thru = thru - xsz
+            self.nclust = self.nclust + 1
+
+        self.bmap = self.bonds[:,0]
+
+        return
+
+    def updatebonds(self):
+        if self.who == self.nnew-1:
+            ww = find(self.lost == 0)[0]
+            dsq = sum(self.lensq[self.pt[ww]]) + self.losttot * self.maxdisq
+            if dsq < self.mndisq:
+                self.minbonds = self.pt[ww]
+                self.mndisq = dsq
+        else:
+            self.who = self.who +1
+
+    def evallost(self):
+        notlost = -self.lost[self.who] -1
+        if (notlost % 2 == 1) and (self.losttot != self.nlost):
+            self.lost[self.who] = 1
+            self.losttot = self.losttot + 1
+            self.checkpt()
+            self.updatebonds()
+        else:
+            self.checkpt()
+            self.pt[self.who] = self.st[self.who] - 1
+            if self.lost[self.who]:
+                self.lost[self.who] = 0
+                self.losttot = self.losttot - 1
+            self.who = self.who - 1
 
 
 def trackmem(xyzs, maxdisp=5, memory=3, dim=2, goodenough=3, quiet=1):
@@ -511,7 +509,7 @@ def trackmem(xyzs, maxdisp=5, memory=3, dim=2, goodenough=3, quiet=1):
     gp.dd = xyzs.shape[1]
     gp.quiet = quiet
     gp.t = xyzs[:,-1]
-    checktimevec(gp)
+    gp.checktimevec()
     gp.res = r_[0, unq(gp.t)+1,gp.t.size]
 
     #res indexes the border of time frames
@@ -519,7 +517,7 @@ def trackmem(xyzs, maxdisp=5, memory=3, dim=2, goodenough=3, quiet=1):
     gp.eyes = r_[:gp.n]
     gp.pos = xyzs[gp.eyes,:gp.dim]
     #Cut out x,y position data spanninng first period
-    gp.zspan = fixzspan(gp)
+    gp.zspan = gp.fixzspan()
     gp.resx = zeros((gp.zspan, gp.n)) -1
     gp.bigresx = zeros((gp.z, gp.n)) -1
     gp.mem = repeat(0,gp.n)
@@ -539,17 +537,17 @@ def trackmem(xyzs, maxdisp=5, memory=3, dim=2, goodenough=3, quiet=1):
 
     if notnsqrd:
         cube = makecube()
-        calcblocksize(xyzs, gp)
+        gp.calcblocksize(xyzs)
 
     for i in r_[gp.istart:gp.z]:
-        gonext(i,xyzs,gp)        
+        gp.gonext(i,xyzs)        
         if gp.m > 0:
         #   THE TRIVIAL BOND CODE BEGINS
             if notnsqrd:
-                rastermetrictrivialbonds(gp)
-                scube = calcscoord(cube,gp)
+                gp.rastermetrictrivialbonds()
+                scube = gp.calcscoord(cube)
                 gp.initwk()
-                initfornotnsqrd(gp)
+                gp.initfornotnsqrd()
                 for j in r_[:gp.n]:
                     gp.map = -1
                     s = (scube + gp.spos[j]) % gp.nblocks
@@ -559,13 +557,13 @@ def trackmem(xyzs, maxdisp=5, memory=3, dim=2, goodenough=3, quiet=1):
                         for k in r_[:ngood]:
                             gp.map = r_[gp.map, gp.isort[gp.strt[s[k]]:gp.fnsh[s[k]]]]
                         gp.map = gp.map[1:]
-                        distq = findtrivialbonds(gp, j)
+                        distq = gp.findtrivialbonds(j)
                         gp.wp, gp.rowtot[j] = find(distq < gp.maxdisq)
                         if gp.rowtot[j] > 0:
                             gp.coltot[gp.map[gp.wp]] = gp.coltot[gp.map[gp.wp]] + 1
                             gp.which1[j] = gp.map[gp.wp[0]]
 
-                nontrivial = labelxy(gp)
+                nontrivial = gp.labelxy()
                 gp.cleanwk()
                 ##clear abi,clear abpos,clear fnsh, clear rowtot, clear coltot, clear which1, clear isort
 
@@ -575,7 +573,7 @@ def trackmem(xyzs, maxdisp=5, memory=3, dim=2, goodenough=3, quiet=1):
                 if gp.ntrack == 0:
                     print "There are no valid particles to track idiot!"
                     break
-                xmat, ymat = prepmat(gp)
+                xmat, ymat = gp.prepmat()
 
                 for d in r_[:gp.dim]:
                     x = gp.xyi[:,d]                    
@@ -588,11 +586,11 @@ def trackmem(xyzs, maxdisp=5, memory=3, dim=2, goodenough=3, quiet=1):
                     
                 gp.ltmax = (dq < gp.maxdisq)
                 #% figure out which trivial bonds go with which        
-                countgood(gp)
-                gp.which1 = indexmax(gp)
+                gp.countgood()
+                gp.which1 = gp.indexmax()
                 ntrk = fix(gp.n - sum(gp.rowtot==0))
 
-                nontrivial = labelxy(gp)
+                nontrivial = gp.labelxy()
 
                 gp.cleanwk()
                 #            del rowtot, coltot, which1
@@ -620,7 +618,7 @@ def trackmem(xyzs, maxdisp=5, memory=3, dim=2, goodenough=3, quiet=1):
                     gp.bmap = repeat(0, gp.bonds.shape[0]) -1
                 else:
                     #%   THE SUBNETWORK CODE BEGINS
-                    extractsubnetwork(gp)
+                    gp.extractsubnetwork()
                     #% THE SUBNETWORK CODE ENDS
 
                 #%   THE PERMUTATION CODE BEGINS
@@ -679,14 +677,14 @@ def trackmem(xyzs, maxdisp=5, memory=3, dim=2, goodenough=3, quiet=1):
                             if gp.pt[gp.who] != gp.fi[gp.who]:
                                 gp.wp, ngood = find(gp.ok[gp.hp[gp.pt[gp.who]+1:gp.fi[gp.who]+1]])
                                 if ngood > 0:
-                                    checkpt(gp)
+                                    gp.checkpt()
                                     gp.pt[gp.who] = gp.pt[gp.who] + gp.wp[0] +1
                                     gp.ok[gp.hp[gp.pt[gp.who]]] = 0
-                                    updatebonds(gp)
+                                    gp.updatebonds()
                                 else:
-                                    evallost(gp)                                    
+                                    gp.evallost()                                    
                             else:
-                                evallost(gp)
+                                gp.evallost()
 
                         checkflag = checkflag + 1
                         if checkflag == 1:
@@ -705,11 +703,11 @@ def trackmem(xyzs, maxdisp=5, memory=3, dim=2, goodenough=3, quiet=1):
 
                 #%   THE PERMUTATION CODE ENDS
             #     here we want to update our initial position estimates
-            update(gp,xyzs)
+            gp.update(xyzs)
         else:
             print ' Warning- No positions found for t='
 
-        updatemem(gp, i)
+        gp.updatemem(i)
 
     ## the big loop over z time steps....
 
@@ -813,7 +811,6 @@ def interpolategaps(data):
 
 def rearrangecolumns(data):
     return column_stack([data[:,3],data[:,2],data[:,:2]])
-
 
 
 def main():
