@@ -1,5 +1,6 @@
 from numpy import *
 import os
+import sys
 
 def circshift(t, n):
     return hstack((t[-n:], t[:-n]))
@@ -810,24 +811,25 @@ def interpolategaps(data):
         subdata=data[pind,:]
         if coln > 4:
             subdata = subdata[subdata[:,-1]==1,:]
-        subind=subdata[:,1] - subdata[0,1]
-        pdata=zeros((max(subind)+1,coln))
-        for i in r_[:max(subind)+1]:
-            if i in subind:
-                pdata[i,:]=subdata[subind==i,:]
-            else:
-                headind,=nonzero([j < i for j in subind])
-                headlast=max(subind[headind])
-                tailind,=nonzero([j > i for j in subind])
-                tailfirst=min(subind[tailind])
-                gaplength=tailfirst - headlast
-                alpha=(i-headlast)*1.0/(tailfirst-headlast)
-                interpol=[cid]
-                for j in r_[1:4]:
-                    interpol=r_[interpol, subdata[subind==headlast,j]*(1.0-alpha)+subdata[subind==tailfirst,j]*alpha]
+        if subdata.size != 0:
+            subind=subdata[:,1] - subdata[0,1]
+            pdata=zeros((max(subind)+1,coln))
+            for i in r_[:max(subind)+1]:
+                if i in subind:
+                    pdata[i,:]=subdata[subind==i,:]
+                else:
+                    headind,=nonzero([j < i for j in subind])
+                    headlast=max(subind[headind])
+                    tailind,=nonzero([j > i for j in subind])
+                    tailfirst=min(subind[tailind])
+                    gaplength=tailfirst - headlast
+                    alpha=(i-headlast)*1.0/(tailfirst-headlast)
+                    interpol=[cid]
+                    for j in r_[1:4]:
+                        interpol=r_[interpol, subdata[subind==headlast,j]*(1.0-alpha)+subdata[subind==tailfirst,j]*alpha]
 
-                interpol=r_[interpol,repeat(0,(coln-4))]
-                pdata[i,:] = interpol
+                    interpol=r_[interpol,repeat(0,(coln-4))]
+                    pdata[i,:] = interpol
         olist = vstack([olist,pdata])
       
     return olist[1:,:]
@@ -855,9 +857,10 @@ def reassignoriginalspots():
     savetxt("opl_reass.txt", newtracks, fmt='%d\t%d\t%10.5f\t%10.5f')
     
 def main():
-    #    reassignoriginalspots()
-    reassignpolishedspots()
-
+    if sys.argv[1] == 'polished':
+        reassignpolishedspots()
+    else:
+        reassignoriginalspots()
 
 if __name__ == '__main__':
     main()
