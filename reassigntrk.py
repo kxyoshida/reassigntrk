@@ -788,13 +788,13 @@ def concatenatespotfiles(folderpath="OriginalSpots"):
     print folderpath
     xyzs = zeros([1,3])
     for file in os.listdir(folderpath):
-        if file.startswith('PSpA'):
-            frame=int(file[4:8])
-        else:
-            frame=int(file[3:7])
-        filepath=folderpath+'/'+file
-        data=genfromtxt(filepath,skiprows=1)
-        xyzs=row_stack([xyzs,column_stack([data[:,1:3],repeat(frame,data.shape[0])])])
+        hi = file.rfind('SpA')
+        if hi != -1:
+            frame=int(file[hi+3:hi+7])
+            filepath=folderpath+'/'+file
+            #            print "hi=",hi, "file=",file,"frame=", frame
+            data=genfromtxt(filepath,skiprows=1)
+            xyzs=row_stack([xyzs,column_stack([data[:,1:3],repeat(frame,data.shape[0])])])
     savetxt("xyzs.txt",xyzs[1:,],fmt='%10.5f\t%10.5f\t%d')        
     return xyzs[1:,:]
 
@@ -857,10 +857,13 @@ def reassignoriginalspots():
     savetxt("opl_reass.txt", newtracks, fmt='%d\t%d\t%10.5f\t%10.5f')
     
 def main():
-    if sys.argv[1] == 'polished':
-        reassignpolishedspots()
-    else:
+    if len(sys.argv) < 2:
         reassignoriginalspots()
+    else:
+        if sys.argv[1] == 'polished':
+            reassignpolishedspots()
+        else:
+            reassignoriginalspots()
 
 if __name__ == '__main__':
     main()
